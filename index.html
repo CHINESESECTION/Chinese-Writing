@@ -12,7 +12,10 @@
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
     .app-container { width: 100%; max-width: 500px; height: 100%; max-height: 100%; background: var(--card-bg); display: flex; flex-direction: column; position: relative; }
+    
     header { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex: none; }
+    .header-user-info { display: flex; align-items: center; gap: 10px; }
+    .user-pfp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); display: none; background: #CBD5E1; }
     .user-name { font-weight: bold; font-size: 0.95rem; color: var(--primary-text); }
     .user-id { font-size: 0.75rem; color: var(--text-muted); }
     .header-actions { display: flex; gap: 8px; align-items: center; }
@@ -23,6 +26,7 @@
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .modal { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 350px; display: flex; flex-direction: column; }
     .form-group { margin-bottom: 12px; } .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; } .form-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; background: var(--card-bg); color: var(--text-main); }
+    .form-group input:read-only { opacity: 0.6; cursor: not-allowed; background: var(--surface); }
 
     /* Dashboard */
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px;}
@@ -80,7 +84,7 @@
     .btn-secondary { background: #64748B; } .btn-success { background: var(--success); } .btn-danger { background: #DC2626; }
     .btn-outline { background: transparent; border: 1px solid #CBD5E1; color: var(--text-main); }
 
-    /* --- Dark theme overrides (light theme unchanged) --- */
+    /* --- Dark theme overrides --- */
     [data-theme="dark"] header { background: var(--surface); }
     [data-theme="dark"] .modal input, [data-theme="dark"] .form-group input { background: #1E293B; color: #E2E8F0; border-color: #475569; }
     [data-theme="dark"] .dict-search-input { background: #1E293B; color: #E2E8F0; border-color: #475569; }
@@ -102,8 +106,18 @@
   <div class="modal-overlay" id="identityModal" style="display: none;">
     <div class="modal">
       <h3 id="identityModalTitle" style="margin-top:0; color: var(--primary-text);">Identity Setup</h3>
+      
+      <div style="text-align: center; margin-bottom: 12px;">
+        <img id="previewPfp" src="" style="width:70px; height:70px; border-radius:50%; object-fit:cover; display:none; margin: 0 auto 8px; border: 2px solid var(--border-color);">
+        <label class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem; cursor: pointer; display: inline-block;">
+          📷 Select Profile Picture
+          <input type="file" id="inputPfp" accept="image/*" style="display: none;" onchange="previewImage(event)">
+        </label>
+      </div>
+
       <div class="form-group"><label>Full Name</label><input type="text" id="inputName"></div>
-      <div class="form-group"><label>Index Number</label><input type="text" id="inputId"></div>
+      <div class="form-group"><label>Index Number <span id="idLockMsg" style="color:var(--text-muted); font-weight:normal; font-size:0.75rem; display:none;">(Locked)</span></label><input type="text" id="inputId"></div>
+      
       <div style="display:flex; gap:8px;">
         <button class="btn" style="flex:1; padding: 12px; font-size:1rem;" onclick="saveIdentity()">Save to Device</button>
         <button class="btn btn-outline" id="identityCancelBtn" style="display:none; padding: 12px;" onclick="closeIdentityModal()">Cancel</button>
@@ -129,10 +143,13 @@
 
   <div class="app-container">
     <header>
-      <div><div class="user-name" id="uiName">--</div><div class="user-id" id="uiId">ID: --</div></div>
+      <div class="header-user-info">
+        <img id="uiPfp" class="user-pfp" src="">
+        <div><div class="user-name" id="uiName">--</div><div class="user-id" id="uiId">ID: --</div></div>
+      </div>
       <div class="header-actions">
         <button class="btn btn-outline" id="themeToggleBtn" style="padding: 6px 10px; font-size: 0.85rem;" title="Toggle dark mode" onclick="toggleTheme()">🌙</button>
-        <button class="btn btn-outline" id="muteToggleBtn" style="padding: 6px 10px; font-size: 0.85rem;" onclick="toggleMute()">🔇 Unmute Audio</button>
+        <button class="btn btn-outline" id="muteToggleBtn" style="padding: 6px 10px; font-size: 0.85rem;" onclick="toggleMute()">🔇 Unmute</button>
         <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.85rem;" title="Edit profile" onclick="openIdentityEditor()">✏️</button>
         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="showView('dashboardView')">🏠 Home</button>
       </div>
@@ -148,7 +165,7 @@
       <div id="weekListContainer"></div>
       <div id="emptyDashboardMsg" style="text-align: center; color: var(--text-muted); padding: 40px 20px;">No assignments loaded. Click "Add Assignment" to begin.</div>
 
-      <!-- Renamed from Pool to Characters Learned -->
+      <!-- Pool Card -->
       <div class="pool-card" id="poolCard" style="display: none;">
         <h4 style="margin:0 0 4px 0;">🔠 Characters Learned</h4>
         <p style="margin:0 0 12px 0; font-size:0.85rem;">Total accumulated: <strong id="poolCount">0</strong></p>
@@ -238,7 +255,10 @@
 <script>
   const LOGICAL_SIZE = 500; const ID_KEY = "writeApp_Identity"; const ROSTER_KEY = "writeApp_SemesterRoster"; const POOL_KEY = "writeApp_WordPool_v3";
   const STATS_KEY = "writeApp_PoolStats"; const MISTAKE_KEY = "writeApp_Mistakes"; const THEME_KEY = "writeApp_Theme";
-  let studentIdentity = { id: "", name: "" }; let semesterRoster = []; let globalPool = [];
+  
+  // Appended pfp to student identity tracking
+  let studentIdentity = { id: "", name: "", pfp: "" }; 
+  let semesterRoster = []; let globalPool = [];
   let poolStats = {}; let mistakeSet = new Set();
   let isMuted = true; // DEFAULT MUTED
   let audioUnlocked = false;
@@ -278,14 +298,12 @@
   function toggleMute() { isMuted = !isMuted; document.getElementById('muteToggleBtn').innerText = isMuted ? "🔇 Unmute Audio" : "🔊 Mute Audio"; }
   function playAudio(text) {
     if (isMuted) return;
-    // Try pre-generated Azure MP3 embedded in the current practice item
     try {
       if (activeWeekLayout && activeWeekLayout.items && activeWeekLayout.items[currentItemIndex]) {
         const item = activeWeekLayout.items[currentItemIndex];
         if (item.audio) { const a = new Audio(item.audio); a.play().catch(() => {}); return; }
       }
     } catch(e) {}
-    // Fallback: device-local TTS
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'zh-CN'; utterance.rate = 0.8;
@@ -294,20 +312,109 @@
   }
   function toggleReference() { isRefHidden = !isRefHidden; document.getElementById('toggleRefBtn').innerText = isRefHidden ? "🙈" : "👁️"; document.getElementById('refAnswerText').style.display = isRefHidden ? "none" : "block"; }
 
+  // --- IDENTITY & PROFILE PICTURE MANAGEMENT ---
   function checkIdentity() {
     const saved = localStorage.getItem(ID_KEY);
-    if (saved) { studentIdentity = JSON.parse(saved); document.getElementById('uiName').innerText = studentIdentity.name; document.getElementById('uiId').innerText = `ID: ${studentIdentity.id}`; }
-    else { document.getElementById('identityModalTitle').innerText = 'Identity Setup'; document.getElementById('identityCancelBtn').style.display = 'none'; document.getElementById('identityModal').style.display = 'flex'; }
+    if (saved) { 
+      studentIdentity = JSON.parse(saved); 
+      document.getElementById('uiName').innerText = studentIdentity.name; 
+      document.getElementById('uiId').innerText = `ID: ${studentIdentity.id}`; 
+      
+      const uiPfp = document.getElementById('uiPfp');
+      if (studentIdentity.pfp) { uiPfp.src = studentIdentity.pfp; uiPfp.style.display = 'block'; } 
+      else { uiPfp.style.display = 'none'; }
+    }
+    else { 
+      document.getElementById('identityModalTitle').innerText = 'Identity Setup'; 
+      document.getElementById('identityCancelBtn').style.display = 'none'; 
+      document.getElementById('inputId').readOnly = false;
+      document.getElementById('idLockMsg').style.display = 'none';
+      document.getElementById('identityModal').style.display = 'flex'; 
+    }
   }
+
   function openIdentityEditor() {
     document.getElementById('inputName').value = studentIdentity.name || '';
     document.getElementById('inputId').value = studentIdentity.id || '';
+    
+    // Lock the ID input during editing
+    const idInput = document.getElementById('inputId');
+    if(studentIdentity.id) {
+       idInput.readOnly = true;
+       document.getElementById('idLockMsg').style.display = 'inline';
+    }
+
+    const preview = document.getElementById('previewPfp');
+    if(studentIdentity.pfp) { preview.src = studentIdentity.pfp; preview.style.display = 'block'; }
+    else { preview.style.display = 'none'; }
+
     document.getElementById('identityModalTitle').innerText = 'Edit Profile';
     document.getElementById('identityCancelBtn').style.display = 'inline-flex';
     document.getElementById('identityModal').style.display = 'flex';
   }
+
   function closeIdentityModal() { document.getElementById('identityModal').style.display = 'none'; }
-  function saveIdentity() { const name = document.getElementById('inputName').value.trim(); const id = document.getElementById('inputId').value.trim(); if (!name || !id) return alert("Required!"); studentIdentity = { id, name }; localStorage.setItem(ID_KEY, JSON.stringify(studentIdentity)); document.getElementById('identityModal').style.display = 'none'; checkIdentity(); }
+
+  function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('previewPfp').src = e.target.result;
+        document.getElementById('previewPfp').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function saveIdentity() { 
+    const name = document.getElementById('inputName').value.trim(); 
+    const id = document.getElementById('inputId').value.trim(); 
+    if (!name || !id) return alert("Required!"); 
+
+    const fileInput = document.getElementById('inputPfp');
+    if (fileInput.files && fileInput.files[0]) {
+      // Resize the image to prevent massive JSON payloads
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const cvs = document.createElement('canvas');
+          const MAX_SIZE = 150;
+          let width = img.width; let height = img.height;
+          if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
+          else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+          cvs.width = width; cvs.height = height;
+          const ctxCvs = cvs.getContext('2d');
+          ctxCvs.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG to keep Base64 size tiny (~10kb)
+          const pfpBase64 = cvs.toDataURL('image/jpeg', 0.7);
+          finalizeSaveIdentity(name, id, pfpBase64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      // No new file, keep existing
+      finalizeSaveIdentity(name, id, studentIdentity.pfp || "");
+    }
+  }
+
+  function finalizeSaveIdentity(name, id, pfp) {
+    studentIdentity = { id, name, pfp }; 
+    localStorage.setItem(ID_KEY, JSON.stringify(studentIdentity)); 
+    document.getElementById('identityModal').style.display = 'none'; 
+    
+    // Update live session data if currently practicing so export uses freshest name/pfp immediately
+    if (activeSessionData && activeSessionData.meta) {
+       activeSessionData.meta.studentName = name;
+       activeSessionData.meta.studentPfp = pfp;
+       saveActiveSession();
+    }
+    
+    checkIdentity(); 
+  }
 
   // --- POOL HELPERS (normalize old string entries & new object entries) ---
   function poolWordOf(item) { return typeof item === 'string' ? item : item.word; }
@@ -316,7 +423,7 @@
   function updateStorageNote() {
     let bytes = 0;
     for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key.startsWith('writeApp_')) bytes += (localStorage.getItem(key) || '').length + key.length; }
-    document.getElementById('storageNote').innerText = `Device storage: ${(bytes / 1024).toFixed(1)} KB · ${semesterRoster.length} assignment(s) · ${globalPool.length} word(s) · v2.0`;
+    document.getElementById('storageNote').innerText = `Device storage: ${(bytes / 1024).toFixed(1)} KB · ${semesterRoster.length} assignment(s) · ${globalPool.length} word(s) · v2.1`;
   }
 
   function loadDashboard() {
@@ -340,7 +447,6 @@
       let statusClass = "badge-pending"; let statusText = "Pending";
       if (session.meta.isGraded) { statusClass = "badge-graded"; statusText = "Graded"; } else if (session.meta.isRevisionMode) { statusClass = "badge-submitted"; statusText = "Submitted"; }
 
-      // Progress: filled char slots vs total char slots
       let totalChars = 0, filledChars = 0;
       layout.items.forEach(it => {
         const sess = session.responses[it.id] || { slots: [] };
@@ -433,7 +539,7 @@
     else { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = fname; document.body.appendChild(a); a.click(); a.remove(); }
   }
 
-  // --- RESTORED DICTIONARY SYSTEM (Drill-Down & Search) ---
+  // --- DICTIONARY SYSTEM ---
   let dictGroups = {};
 
   function masteryTag(word) {
@@ -453,7 +559,6 @@
     semesterRoster.forEach((wId, idx) => { dictGroups[wId] = { title: `Assignment ${idx + 1}`, words: [] }; });
 
     globalPool.forEach(item => {
-       // Safe fallback for old local storage formats just in case
        const w = typeof item === 'string' ? {word: item, weekId: 'other'} : item;
        if(dictGroups[w.weekId]) dictGroups[w.weekId].words.push(w.word);
        else { if(!dictGroups['other']) dictGroups['other'] = {title: 'Other', words: []}; dictGroups['other'].words.push(w.word); }
@@ -533,17 +638,26 @@
 
         localStorage.setItem(`writeApp_Layout_${weekId}`, JSON.stringify(layoutData));
         if (!localStorage.getItem(`writeApp_Session_${weekId}`)) {
-          const newSession = { meta: { studentId: studentIdentity.id, studentName: studentIdentity.name, weekId: weekId, isRevisionMode: false, isGraded: false }, responses: {} };
+          // Initialize Session Data and automatically embed the Profile Picture
+          const newSession = { 
+              meta: { 
+                  studentId: studentIdentity.id, 
+                  studentName: studentIdentity.name, 
+                  studentPfp: studentIdentity.pfp || "", 
+                  weekId: weekId, 
+                  isRevisionMode: false, 
+                  isGraded: false 
+              }, 
+              responses: {} 
+          };
           layoutData.items.forEach(item => newSession.responses[item.id] = { slots: [] }); localStorage.setItem(`writeApp_Session_${weekId}`, JSON.stringify(newSession));
         }
         if (!semesterRoster.includes(weekId)) { semesterRoster.push(weekId); localStorage.setItem(ROSTER_KEY, JSON.stringify(semesterRoster)); }
 
         layoutData.items.forEach(item => {
-           // Ignore items without specific target words provided by the teacher
            const wordsToExtract = (item.words && item.words.length > 0) ? item.words : [];
            wordsToExtract.forEach(word => {
              if (!globalPool.some(w => (typeof w === 'string' ? w : w.word) === word)) {
-               // Assign exact word audio using the new `wordAudios` dictionary generated by Lecturer App
                const wordAudio = (item.wordAudios && item.wordAudios[word]) ? item.wordAudios[word] : null;
                globalPool.push({
                    word: word, 
@@ -553,7 +667,6 @@
                    audio: wordAudio
                });
              } else {
-               // Update existing pool entry with audio if the .dat provides it
                const existing = globalPool.find(w => (typeof w === 'string' ? w : w.word) === word);
                if (existing && typeof existing === 'object') {
                  if (item.wordAudios && item.wordAudios[word] && !existing.audio) {
@@ -715,9 +828,9 @@
 
   let currentPoolChar = "";
   let isPoolRevealed = false;
-  let poolDeck = null;      // null = full pool (weighted); array of words = Mistake Book deck
+  let poolDeck = null;      
   let lastPoolWord = "";
-  let poolHistory = [];     // stack of previously shown words for back-navigation
+  let poolHistory = [];     
 
   function startPoolPractice() {
     poolDeck = null;
@@ -740,7 +853,6 @@
     const src = poolDeck || globalPool.map(poolWordOf);
     if (src.length === 0) return null;
     let candidates = src;
-    // In full-pool mode, 50% chance to prefer mistake words (simple spaced repetition)
     if (!poolDeck && mistakeSet.size > 0 && Math.random() < 0.5) {
       const m = src.filter(w => mistakeSet.has(w)); if (m.length > 0) candidates = m;
     }
@@ -752,7 +864,6 @@
   function nextPoolCharacter() {
     const w = pickPoolWord();
     if (!w) return;
-    // Save current word to history before moving forward
     if (currentPoolChar) { poolHistory.push(currentPoolChar); if (poolHistory.length > 50) poolHistory.shift(); }
     restorePoolChar(w);
     updatePoolNavButtons();
@@ -762,7 +873,6 @@
     if (poolHistory.length === 0) return;
     const w = poolHistory.pop();
     if (!w) return;
-    // Don't push current onto history when going back (user can go forward again)
     restorePoolChar(w);
     updatePoolNavButtons();
   }
@@ -784,14 +894,12 @@
   }
 
   function playPoolAudio() {
-    // Check if the current word has its own specific audio
     const poolItem = findPoolItem(currentPoolChar);
     if (poolItem && typeof poolItem === 'object' && poolItem.audio) {
       const a = new Audio(poolItem.audio);
       a.play().catch(() => {});
       return;
     }
-    // Fallback to robotic browser TTS
     playAudio(currentPoolChar);
   }
 
@@ -878,13 +986,24 @@
     });
   }
 
+  // --- AUTOMATIC EXPORT INJECTION ---
   function exportSubmission() {
-    activeSessionData.meta.isRevisionMode = true; saveActiveSession();
-    const payload = { meta: activeSessionData.meta, responses: Object.keys(activeSessionData.responses).map(id => ({ itemId: id, slots: activeSessionData.responses[id].slots })) };
+    activeSessionData.meta.isRevisionMode = true; 
+    saveActiveSession();
+    
+    // Inject the freshest Profile Picture right before export
+    activeSessionData.meta.studentName = studentIdentity.name;
+    activeSessionData.meta.studentPfp = studentIdentity.pfp || "";
+
+    const payload = { 
+      meta: activeSessionData.meta, 
+      responses: Object.keys(activeSessionData.responses).map(id => ({ itemId: id, slots: activeSessionData.responses[id].slots })) 
+    };
+    
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
     const dl = document.createElement('a'); dl.href = dataStr; dl.download = `${studentIdentity.id}_submission_${activeWeekId}.json`;
     document.body.appendChild(dl); dl.click(); dl.remove();
-    alert("Assignment exported!"); showView('dashboardView');
+    alert("Assignment exported! Your profile picture is included."); showView('dashboardView');
   }
 
   // --- KEYBOARD SHORTCUTS (desktop) ---
