@@ -464,7 +464,7 @@
       if (session.meta.isGraded) {
         actionBtns = `<button class="btn btn-secondary" style="font-size:0.75rem; padding:6px; flex:1;" onclick="openWeek('${weekId}', 'feedback')">👀 Review Feedback</button> <button class="btn btn-outline" style="font-size:0.75rem; padding:6px; flex:1;" onclick="openWeek('${weekId}', 'revise')">✍️ Revise</button>`;
       } else if (session.meta.isRevisionMode) {
-        actionBtns = `<button class="btn btn-secondary" style="font-size:0.75rem; padding:6px; flex:1;" onclick="openWeek('${weekId}', 'revise')">✍️ Revise</button> <button class="btn btn-success" style="font-size:0.75rem; padding:6px; flex:1;" onclick="triggerFeedbackImport('${weekId}')">📥 Load Feedback</button>`;
+        actionBtns = `<button class="btn btn-secondary" style="font-size:0.75rem; padding:6px; flex:1;" onclick="openWeek('${weekId}', 'revise')">✍️ Revise</button> <button class="btn btn-success" style="font-size:0.75rem; padding:6px; flex:1;" onclick="triggerFeedbackImport('${weekId}')">📥 Lecturers Comment</button>`;
       } else {
         actionBtns = `<button class="btn" style="font-size:0.75rem; padding:6px; flex:1;" onclick="openWeek('${weekId}', 'practice')">✍️ Continue Assignment</button>`;
       }
@@ -1003,7 +1003,7 @@
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
     const dl = document.createElement('a'); dl.href = dataStr; dl.download = `${studentIdentity.id}_submission_${activeWeekId}.json`;
     document.body.appendChild(dl); dl.click(); dl.remove();
-    alert("Assignment exported! Your profile picture is included."); showView('dashboardView');
+    alert("Assignment exported!"); showView('dashboardView');
   }
 
   // --- KEYBOARD SHORTCUTS (desktop) ---
